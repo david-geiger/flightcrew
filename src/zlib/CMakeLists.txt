@@ -133,5 +133,9 @@ if( MSVC )
     set_target_properties( ${PROJECT_NAME} PROPERTIES STATIC_LIBRARY_FLAGS "/LTCG" )
 endif()
 
+if( UNIX AND BUILD_SHARED_FC )
+    add_definitions(-fPIC)
+endif()
+
 
 

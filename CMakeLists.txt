@@ -20,6 +20,8 @@ set( FLIGHTCREW_MAJOR_VERSION 0 )
 set( FLIGHTCREW_MINOR_VERSION 7 )
 set( FLIGHTCREW_REVISION_VERSION 2 )
 set( FLIGHTCREW_FULL_VERSION ${FLIGHTCREW_MAJOR_VERSION}.${FLIGHTCREW_MINOR_VERSION}.${FLIGHTCREW_REVISION_VERSION} )
+set( FLIGHTCREW_SOVERSION ${FLIGHTCREW_FULL_VERSION} )
+set( FLIGHTCREW_LIBVERSION ${FLIGHTCREW_SOVERSION} )
 
 # Check if platform is 64 bit
 if( NOT APPLE )
@@ -39,10 +41,21 @@ set( CMAKE_OSX_DEPLOYMENT_TARGET "10.9" )
 # Universal builds for mac
 # set( CMAKE_OSX_ARCHITECTURES "i386;x86_64" )
 
+find_package( Boost COMPONENTS date_time filesystem program_options regex system thread system)
+find_package( ZLIB )
+find_package( PkgConfig )
+pkg_check_modules( XERCES xerces-c>=3.1 )
 
 # The parsing order is significant!
 
-add_subdirectory( src/BoostParts )
+if( Boost_FOUND )
+    set( BOOST_LIBS ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_REGEX_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} )
+    set( BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS} )
+else()
+    add_subdirectory( src/BoostParts )
+    set( BOOST_LIBS BoostParts )
+    set( BOOST_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/BoostParts )
+endif()
 # Set these so zipios doesn't complain.
 set( Boost_DATE_TIME_LIBRARY 1 )
 set( Boost_FILESYSTEM_LIBRARY 1 )
@@ -50,20 +63,26 @@ set( Boost_PROGRAM_OPTIONS_LIBRARY 1 )
 set( Boost_REGEX_LIBRARY 1 )
 set( Boost_SYSTEM_LIBRARY 1 )
 set( Boost_THREAD_LIBRARY 1 )
-set( BOOST_LIBS BoostParts )
-set( BOOST_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/BoostParts )
 
-add_subdirectory( src/Xerces )
-set( XERCES_LIBRARIES Xerces )
-set( XERCES_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/Xerces )
+if( NOT XERCES_FOUND )
+    add_subdirectory( src/Xerces )
+    set( XERCES_LIBRARIES Xerces )
+    set( XERCES_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/Xerces )
+endif()
 
 add_subdirectory( src/XercesExtensions )
 set( XERCESEXTENSIONS_LIBRARIES XercesExtensions )
 set( XERCESEXTENSIONS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/XercesExtensions )
 
-add_subdirectory( src/zlib )
+if( NOT ZLIB_FOUND )
+    add_subdirectory( src/zlib )
+endif()
+
 add_subdirectory( src/zipios )
-add_subdirectory( src/googlemock )
+
+if( NOT NO_TEST_EXE )
+    add_subdirectory( src/googlemock )
+endif()
 
 add_subdirectory( src/FlightCrew )
 set( FLIGHTCREW_LIBRARIES FlightCrew )

@@ -21,7 +21,19 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
 
 link_directories ( ${PROJECT_BINARY_DIR}/lib ) 
 
-add_library( ${PROJECT_NAME} ${SOURCES} )
+if( BUILD_SHARED_XE )
+    add_library( ${PROJECT_NAME} SHARED ${SOURCES} )
+    set_target_properties( ${PROJECT_NAME} PROPERTIES
+        VERSION "${FLIGHTCREW_LIBVERSION}"
+        SOVERSION "${FLIGHTCREW_SOVERSION}"
+        OUTPUT_NAME "${PROJECT_NAME}"
+    )
+else()
+    add_library( ${PROJECT_NAME} ${SOURCES} )
+    if( UNIX AND BUILD_SHARED_FC )
+        add_definitions(-fPIC)
+    endif()
+endif()
 
 target_link_libraries( ${PROJECT_NAME} ${XERCES_LIBRARIES} )
 
@@ -51,5 +63,15 @@ endif()
 # needed for correct Xerces header inclusion
 if( FORCE_BUNDLED_COPIES OR NOT XERCES_FOUND)
     add_definitions( -DXERCES_STATIC_LIBRARY )
+endif()
+
+if( BUILD_SHARED_XE AND UNIX AND NOT APPLE )
+    install( TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}
+     )
+    file( GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/*.h" )
+    install( FILES ${files} DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME} )
+    install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/FindXercesExtensions.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/cmake/${PROJECT_NAME} )
 endif()
 

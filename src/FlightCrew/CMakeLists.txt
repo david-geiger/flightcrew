@@ -50,8 +50,8 @@ list( REMOVE_ITEM SOURCES ${to_remove} )
 
 # creating PCH's for MSVC and GCC on Linux
 include( ${CMAKE_SOURCE_DIR}/cmake_extras/CustomPCH.cmake )
-set( ALL_INCLUDES ${BoostParts_SOURCE_DIR}
-                  ${Xerces_SOURCE_DIR}
+set( ALL_INCLUDES ${BOOST_INCLUDE_DIRS}
+                  ${XERCES_INCLUDE_DIRS}
                   ${zipios_SOURCE_DIR} )
 set( GCC_PCH_TARGET gccPCH_fc )
 
@@ -65,8 +65,8 @@ precompiled_header( SOURCES ALL_INCLUDES ${GCC_PCH_TARGET} ${PCH_NAME} )
 include_directories( ${CMAKE_CURRENT_BINARY_DIR}
                      ${CMAKE_CURRENT_SOURCE_DIR}
                      ../zipios 
-                     ../BoostParts 
-                     ../Xerces
+                     ${BOOST_INCLUDE_DIRS}
+                     ${XERCES_INCLUDE_DIRS}
                      ../XercesExtensions
                      ../utf8-cpp
                    )
@@ -78,11 +78,16 @@ if( BUILD_SHARED_FC )
     # when they want a dll, but NOT FC_DLL_EXPORTING
     add_definitions( -DFC_DLL_EXPORTING -DFC_BUILT_AS_DLL )
     add_library( ${PROJECT_NAME} SHARED ${SOURCES} )
+    set_target_properties( ${PROJECT_NAME} PROPERTIES
+        VERSION "${FLIGHTCREW_LIBVERSION}"
+        SOVERSION "${FLIGHTCREW_SOVERSION}"
+        OUTPUT_NAME "${PROJECT_NAME}"
+    )
 else()
     add_library( ${PROJECT_NAME} ${SOURCES} )
 endif()
 
-target_link_libraries( ${PROJECT_NAME} zipios BoostParts XercesExtensions )
+target_link_libraries( ${PROJECT_NAME} zipios ${BOOST_LIBS} XercesExtensions )
 
 #############################################################################
 
@@ -116,7 +121,9 @@ elseif( CMAKE_COMPILER_IS_GNUCXX )
 endif()
 
 # needed for correct Xerces header inclusion
-add_definitions( -DXERCES_STATIC_LIBRARY )
+if( NOT XERCES_FOUND )
+    add_definitions( -DXERCES_STATIC_LIBRARY )
+endif()
 
 #############################################################################
 
@@ -127,4 +134,19 @@ add_definitions( -DXERCES_STATIC_LIBRARY )
 # We also don't build the tests if the user specified it.
 if( NOT ( BUILD_SHARED_FC AND MSVC ) AND NOT NO_TEST_EXE )
     add_subdirectory( tests )
+endif()
+
+if( UNIX AND NOT APPLE )
+    install( TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}
+     )
+    file( GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/*.h" )
+    install( FILES ${files} DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME} )
+    file( GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/Misc/*.h" )
+    install( FILES ${files} DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME}/Misc )
+    file( GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/Validators/*.h" )
+    install( FILES ${files} DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME}/Validators )
+    install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/../XercesExtensions/NodeLocationInfo.h DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME} )
+    install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/FindFlightCrew.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/cmake/${PROJECT_NAME} )
 endif()

@@ -174,4 +174,7 @@ else()
     # We need to link to pthreads on unix                                 
     target_link_libraries( ${PROJECT_NAME} pthread )
                        
+    if( BUILD_SHARED_FC )
+        add_definitions(-fPIC)
+    endif()
 endif()
